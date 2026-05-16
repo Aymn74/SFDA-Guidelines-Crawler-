@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+data/raw_pdfs/*
+data/extracted_text/*
+!data/raw_pdfs/.gitkeep
+!data/extracted_text/.gitkeep
