@@ -59,6 +59,46 @@ Outputs are written to:
 python -m pytest
 ```
 
+## Embeddings and Supabase pgvector
+
+Apply the schema in `supabase/migrations/202605160001_sfda_pgvector.sql` to your Supabase project. The migration creates:
+
+- `sfda_documents`
+- `sfda_document_chunks`
+- `match_sfda_guidelines(...)` hybrid search RPC
+
+The vector column is `extensions.vector(1536)` for `text-embedding-3-small`. If you change `OPENAI_EMBEDDING_DIMENSIONS`, update the migration to the same dimension before ingesting.
+
+Configure secrets in `.env`:
+
+```bash
+OPENAI_API_KEY=sk-...
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_EMBEDDING_DIMENSIONS=1536
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+Preview chunk counts without API calls:
+
+```bash
+python -m src.embedding_pipeline --metadata data/sfda_guidelines.csv --dry-run
+```
+
+Generate embeddings and upsert documents/chunks:
+
+```bash
+python -m src.embedding_pipeline --metadata data/sfda_guidelines.csv --batch-size 16
+```
+
+Hybrid search:
+
+```bash
+python -m src.search "clinical trial drug submission requirements" --sector Drugs --match-count 5
+```
+
+Use the Supabase service role key only in trusted server-side environments. Do not expose it in browser or client-side apps.
+
 ## Politeness and Robustness
 
 - Reads `robots.txt` before crawling.
@@ -75,10 +115,9 @@ python -m pytest
 - Metadata quality depends on what each listing/detail page exposes consistently.
 - PDF text extraction can vary for scanned PDFs; OCR is not included.
 
-## Next Step: Embeddings and Supabase pgvector
+## Next Step: Production Hardening
 
-1. Split extracted text files into chunks with source metadata.
-2. Generate embeddings for each chunk.
-3. Store document metadata in a `sfda_documents` table.
-4. Store chunks and vectors in a `sfda_document_chunks` table with `pgvector`.
-5. Add hybrid search over title, metadata filters, and vector similarity.
+1. Add a scheduled crawl job.
+2. Add OCR fallback for scanned PDFs.
+3. Add CI that runs tests on every push.
+4. Add a small API around `match_sfda_guidelines` for applications.
